@@ -1,0 +1,7 @@
+---
+- hosts: localhost
+  tasks:
+   - shell: echo 'doesnt matter'
+     with_dict: '{{ansible_device_links}}'
+#     loop_control:
+#       label: '{{item.key}}'

@@ -1,0 +1,27 @@
+---
+- hosts: localhost
+#  any_errors_fatal: yes
+  tasks:
+  - name: Check WebServer and corresponding Ports
+    wait_for:
+      host: 172.31.18.58
+      port: "{{ item }}"
+      state: started
+      delay: 0
+      timeout: 5
+      msg: "Unable to Connect to WebServer on Port {{ item }}"
+#    ignore_errors: no
+    with_items:
+      - 80
+    register: resultt
+ 
+#  - name: Echo Connection Result
+#    debug:
+#      var: resultt.state
+#      msg: "{{ ansible_host }} is able to connect to 172.31.18.58 because the Apache Server is {{ result.state }} "
+#      when: result.state == started
+ 
+  - name: Install Some Random RPM
+    yum:
+      name: iftop
+      state: present

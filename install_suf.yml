@@ -1,0 +1,58 @@
+---
+- hosts: testhost
+  become: yes
+  become_method: sudo
+  any_errors_fatal: yes
+  tasks:
+
+  - name: Check DS Connectivity on Port 8089
+    wait_for:
+      host: ds_hostname
+      port: 8089
+      state: started
+      delay: 0
+      timeout: 5
+      msg: "Unable to Connect to DS on Port 8089"
+    ignore_errors: no
+    register: con_result
+ 
+#  - name: Echo Connection Result
+#    debug:
+#      var: con_result.state
+#      msg: "{{ ansible_host }} is able to connect to DS; Connection test result is {{ con_result.state }} "
+#      when: con_result.state == started
+ 
+  - name: Install the local SUF RPM
+    yum:
+      name: /shared/SIEM/splunkforwarder-7.3.2-c60db69f8e32-linux-Z.6-x86_64.rpm
+      state: present
+      disable_gpg_check: yes
+    notify: enable_boot_start
+
+  - name: Create the edsoc_boulder_deploymentclient subdirectory
+    file:
+      path: /opt/splunkforwarder/etc/apps/edsoc_boulder_deploymentclient
+      state: directory
+      owner: splunk
+      group: splunk
+      mode: '0755'
+
+
+  - name: Copy the deploymentclient.conf file containing the DS information
+    file:
+      src: /local/path/to/conf-file/deploymentclient.conf
+      dest: /opt/splunkforwarder/etc/apps/edsoc_boulder_deploymentclient/deploymentclient.conf
+      state: file
+      owner: splunk
+      group: splunk
+      mode: '0444'
+    notify: start_suf_service
+
+  handlers:
+  - name: enable_boot_start
+    command: /opt/splunkforwarder/bin/splunk enable boot-start --accept-license --answer-yes --no-prompt -user splunk -system-managed 1
+
+  - name: start_suf_service
+    service:
+      name: SplunkForwarder
+      state: restarted

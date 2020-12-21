@@ -1,0 +1,12 @@
+---
+  - name: conditionals test
+    hosts: localhost
+    tasks:
+    - name: update the kernel if sufficient space is available in /boot
+      debug:
+#        msg: "User {{ item.username }} has homedirectory {{ item.homedir }} and shell {{ item.shell }}"
+        msg: "User {{ item.mount }}" # ansible_mounts['mount']
+#        msg: "Mounted Disk {{ item }}" # ansible_mounts['mount']
+#      loop: "{{ ansible_facts['mounts'] }}"
+      loop: "{{ ansible_mounts }}"
+#      loop: "{{ ansible_ens5['ipv4']['address'] }}"

@@ -1,0 +1,61 @@
+---
+- hosts: localhost
+  become: yes
+  become_method: sudo
+  become_user: root
+  gather_facts: yes
+
+  tasks:
+
+   - name: Verify the local Public Key Repo directory  exists on the Ansible Controller Server
+     stat:
+       path: /home/opc/ansible/public_keys/
+     register: stat_check
+     ignore_errors: yes
+
+   - name: Fail if directory does not exist
+     fail:
+       msg: "The public key repo directory does not exist or is named incorrectly"
+     when: not stat_check.stat.exists or not stat_check.stat.isdir
+  
+   - name: Find files in Public Key Repo directory
+     find:
+       paths: /home/opc/Ansible/public_keys
+       patterns: '*.pub'
+     register: pubkey_filename
+  
+   - name: List File Specs
+     shell: ls "{{ item.path }}"
+     with_items: "{{ pubkey_filename.files }}"
+     register: file_name
+ 
+   - name: Remove previous local OPC authorized_keys
+     file:
+       path: /home/opc/Ansible/public_keys/opc-authorized-keys
+       state: absent
+ 
+
+   - name: Concactenate all users public keys into one file
+     assemble:
+       src: /home/opc/Ansible/public_keys
+       dest: /home/opc/Ansible/public_keys/opc-authorized-keys
+
+   - name: Pause to verify results
+     pause:
+       minutes: 4
+
+   - name: Add authorized key - Remove all other authorized keys (Uncomment the exclusive option)
+     authorized_key:
+       user: testuser
+       key: "{{ item }}"
+       manage_dir: yes
+       state: present
+       exclusive: no
+#     with_lines: "cat /home/opc/ansible/public_keys/*.pub"
+     with_file:
+      - /home/opc/Ansible/public_keys/opc-authorized-keys
+     register: pubkey_cp
+
+#   - name: Show Output of Public Key Sync
+#     debug:
+#       msg: "{{ pubkey_cp }}"

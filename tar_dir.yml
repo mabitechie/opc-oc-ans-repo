@@ -1,0 +1,16 @@
+---
+- hosts: all
+  become: yes
+  become_method: sudo
+  become_user: root
+  gather_facts: yes
+
+  tasks:
+
+   - name: Archive and Zip /u01 directory
+     archive:
+       path: /u01
+       dest: /u01/{{ ansible_hostname }}_U01.tgz
+       format: gz
+       owner: oracle
+       group: oinstall

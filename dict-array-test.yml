@@ -1,0 +1,14 @@
+---
+
+- name: show dictionary also known as hash
+  hosts: localhost
+  vars_files:
+#  - vars/users-dictionary
+  - vars/users-array-2
+  tasks:
+    - name: print dictionary values
+      debug:
+#       msg: "User {{ users.linda.username }} has homedirectory {{ users.linda.homedir }} and shell {{ users.linda.shell }}" 
+#       msg: "User {{ users.username }} has homedirectory {{ users.homedir }} and shell {{ users.shell }}" 
+        msg: "User {{ item.username }} has homedirectory {{ item.homedir }} and shell {{ item.shell }}" 
+      loop: "{{ users }}"

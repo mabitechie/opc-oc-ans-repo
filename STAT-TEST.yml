@@ -1,0 +1,68 @@
+---
+- hosts: localhost
+  connection: local
+  become: yes
+  become_method: sudo
+  become_user: root
+  gather_facts: yes
+  any_errors_fatal: no
+  vars_files:
+    - /home/opc/Ansible/dir_list
+  tasks:
+  - name: Check if directory exists
+    stat:
+      path: "{{ item }}"
+    with_items:
+      "{{ dir_path }}"
+    register: dircheck
+ 
+  - name: DEBUG
+    debug:
+      msg: " item.item is {{ item.item }}, item.exists is {{ item.stat.exists }}, item.isdir is {{ item.stat.isdir }}, item.changed is {{ item.changed }} "
+#      msg: " item.item is {{ item.item }}, item.stdout is {{ item.stdout }}, item.changed is {{ item.changed }} "
+#      msg: '"{{ item.item }}"'
+    with_items: "{{ dircheck.results }}"
+    when: item.stat.exists
+#    ignore_errors: yes
+
+
+#  - name: Debug Variable
+#    debug:
+###      msg: "{{ dircheck.results | selectattr('stat.exists') | map(attribute='item') | list }}"
+#      msg: "set ACLs at {{ item.stat.path }}"
+#    loop: "{{ dircheck.results }}"
+#    loop_control:
+#      label: "{{ item.item }}"
+#    when:
+#      - item.stat.exists
+#      - item.stat.isdir|default(false)
+
+#  - name: Set ACLs
+#    acl:
+#      path: "{{ item.item }}"
+#      entity: testuser
+#      etype: user
+#      permissions: rx
+#      state: present
+##    with_items: "{{ dircheck.results | selectattr('stat.isdir') | map(attribute='item') | list }}"
+#    with_items: "{{ dircheck.results }}"
+##    when: item.stat.isdir is defined and item.stat.isdir|default(false)|bool == true
+##    when: item.stat.exists is defined and (item.stat.exists|bool)
+#    when:
+#      - item.stat.exists
+#      - item.stat.isdir|default(false)|bool
+#    ignore_errors: yes
+
+  - name: Set ACLs - Solution 2
+    acl:
+      path: "{{ item.stat.path }}"
+      entity: testuser
+      etype: user
+      permissions: rx
+      state: present
+    loop: "{{ dircheck.results }}"
+    loop_control:
+      label: "{{ item.item }}"
+    when:
+      - item.stat.exists
+      - item.stat.isdir|default(false)

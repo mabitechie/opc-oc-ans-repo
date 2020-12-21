@@ -1,0 +1,56 @@
+---
+- hosts: localhost
+  become: yes
+  become_method: sudo
+  become_user: root
+  gather_facts: no
+
+  vars_prompt:
+
+   - name: "user_name"
+     prompt: "Enter existing user's account ID........... "
+     private: no
+     confirm: yes
+
+  tasks:
+
+   - name: Verify UserID exists first and exit play if it does not
+     shell: id -u "{{ user_name }}"
+     register: userid_status
+     ignore_errors: yes
+
+   - name: Check Output
+     debug:
+       msg: "{{ userid_status }}"
+
+   - name: Fail if userID does not exist
+     fail:
+        msg: "The check_update did not a return either a code 100 or 0"
+     when:  userid_status.rc != 0
+
+   - name: Verify User's Public Key file exists on the Ansible Controller Server
+     stat:
+       path: /home/opc/ansible/public_keys/{{ user_name }}.pub
+     register: stat_check
+     ignore_errors: yes
+
+   - name: Fail if User's public key file does not exist
+     fail:
+       msg: "The user's public key file does not exist or is named incorrectly"
+     when: not stat_check.stat.exists
+
+
+   - name: Add authorized key - Remove all other authorized keys (Uncomment the exclusive option)
+     authorized_key:
+       user: "{{ user_name }}"
+       key: "{{ item }}"
+       manage_dir: yes
+       state: present
+#       exclusive: yes
+     with_file:
+      - /home/opc/Ansible/public_keys/{{ user_name }}.pub
+     register: pubkey_cp
+
+   - name: Show Output of Public Key Sync
+     debug:
+       msg: "{{ pubkey_cp }}"

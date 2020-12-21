@@ -1,0 +1,56 @@
+---
+- hosts: all
+  become: yes
+  become_method: sudo
+  become_user: root
+  gather_facts: no
+  any_errors_fatal: true
+
+  vars_prompt:
+   - name: "user_name"
+     prompt: "Enter user's account ID - Last Name + First Initial"
+     private: no
+     confirm: yes
+
+   - name: "user_password"
+     prompt: "Enter a password for the user - not hash?"
+     private: yes
+     unsafe: yes               # If you have to use special character such as % that could potentially cause templating errors    
+     encrypt: "sha512_crypt"   # Need to have python-passlib installed in local machine before we can use it    
+     confirm: yes
+     salt_size: 7
+
+  tasks:
+   - name: Add the user or Reset Their Password
+     user:
+       name: "{{ user_name }}"
+       password: "{{ user_password }}"
+     register: usr_crt
+     tags:
+       - pass_reset
+
+   - name: Show Output of User Creation/Password Reset Task
+     debug:
+       msg: "{{ usr_crt }}"
+
+   - name: Add their authorized key
+     authorized_key:
+       user: "{{ user_name }}"
+       key: "{{ item }}"
+       manage_dir: yes
+       state: present
+#       exclusive: True # Uncomment if you want this public key to override all others
+     with_file:
+      - /home/bitarm/ansible/public_keys/{{ user_name }}.pub
+     register: pubkey_cp
+     tags:
+       - pubkey_reset
+
+   - name: Show Output of Public Key Sync
+     debug:
+       msg: "{{ pubkey_cp }}"
+
+   - name: Expire user's temp password
+     shell: change -d "{{ user_name }}"
+     tags:
+       - pass_expire

@@ -1,0 +1,47 @@
+---
+- hosts: localhost
+  connection: local
+  collections:
+    - oracle.oci
+#  vars_files:
+#  - vars/users-dictionary
+#  - vars/users-array-2
+  tasks:
+  - name: Get Bucket Details
+    oci_object_storage_bucket_facts:
+      namespace_name: idd7b1icfcw6
+      bucket_name: test-private-bucket
+      tenancy: ocid1.tenancy.oc1..aaaaaaaa3pmocn2p5wrn5whhvuiexfgvyjmgp7g5soghhcc2qccqhoj6hihq
+      region: us-ashburn-1
+      auth_type: instance_principal
+
+#  - name: Get all the buckets in the namespace
+#    oci_object_storage_bucket_facts:
+#      namespace_name: idd7b1icfcw6
+#      compartment_id: ocid1.compartment.oc1..aaaaaaaajd7ftsjutvggcpagn5tngznrz3cdeyuk6sucisxfixzyemlv75f
+#      tenancy: ocid1.tenancy.oc1..aaaaaaaa3pmocn2p5wrn5whhvuiexfgvyjmgp7g5soghhcc2qccqhoj6hihq
+#      auth_type: instance_principal
+#      region: us-ashburn-1
+#    register: ocibuckets
+
+  - name: List objects bucket
+    oci_object_storage_object_facts:
+      namespace_name: idd7b1icfcw6
+      bucket_name: test-private-bucket
+      auth_type: instance_principal
+    register: obj_name
+
+  - name: DEBUG - Show Object Name
+    debug:
+      var: obj_name.objects|map(attribute='name')|list|upper
+##      msg: "{{ item.objects.name }}"
+##    with_items: "{{ obj_name.objects }}"
+
+  - name: Download Objects in Bucket
+    oci_object_storage_object:
+      namespace_name: idd7b1icfcw6
+      bucket_name: test-private-bucket
+      object_name: "{{ item }}"
+      dest: /tmp/{{ item }} 
+      auth_type: instance_principal
+    with_items: "{{ obj_name.objects|map(attribute='name')|list }}"

@@ -1,0 +1,16 @@
+---
+- hosts: localhost
+  connection: local
+  tasks:
+  - name: Check if HTTPD exists and fail it does
+    command: rpm -q httpdd
+    register: rpm_check
+
+  - name:
+    debug:
+      msg: "{{ rpm_check }}"
+
+  - name: Fail if HTTPD RPM is installed
+    fail:
+      msg: "HTTPD package is already installed"
+    when: rpm_check.rc == 0

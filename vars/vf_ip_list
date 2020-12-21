@@ -1,0 +1,5 @@
+pub_ips:
+ - name: 'Admin User1'
+   ipaddr: '173.66.178.93/32'
+ - name: 'Developer User1'
+   ipaddr: '173.66.178.94/32'

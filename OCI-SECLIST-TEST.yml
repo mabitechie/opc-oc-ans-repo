@@ -1,0 +1,45 @@
+---
+- hosts: localhost
+  connection: local
+  collections:
+    - oracle.oci
+  vars_files:
+#  - vars/ip_list
+  - vars/vf_ip_list
+#  - vars/users-array-2
+  tasks:
+  - name: Update Security List
+    oci_network_security_list:
+      display_name: "Default Security List for OCI_HOL_VCN"
+      security_list_id: ocid1.securitylist.oc1.iad.aaaaaaaaa574gmxjxj7hynsnkiewxfflxpipaprtrovjyp3vqfhmllbcvfhq
+      compartment_id: 'ocid1.compartment.oc1..aaaaaaaajd7ftsjutvggcpagn5tngznrz3cdeyuk6sucisxfixzyemlv75f'
+      vcn_id: 'ocid1.vcn.oc1.iad.amaaaaaazz3xmoaagptmdom3qdrxuw7fxif22ejizo6j5uzldu4kwydinjva'
+      state: 'present'
+      config_file_location: /home/opc/.oci/config
+      ingress_security_rules:
+#        - source: '173.66.178.91/32'
+        - source: "{{ item.ipaddr }}"
+          is_stateless: False
+          protocol: 6
+          tcp_options:
+              destination_port_range:
+                  min: 22
+                  max: 22
+          description: "{{ item.name }}"
+      purge_security_rules: false
+    loop: "{{ pub_ips }}"
+#    with_items: "{{ pub_ips }}"
+#    with_items: "{{ lookup('pipe', 'cat /home/opc/Ansible/vars/ip_list') }}"
+    
+
+
+#  - name: Get Bucket Details
+#    oci_object_storage_bucket_facts:
+#      namespace_name: idd7b1icfcw6
+#      bucket_name: test-private-bucket
+#      tenancy: ocid1.tenancy.oc1..aaaaaaaa3pmocn2p5wrn5whhvuiexfgvyjmgp7g5soghhcc2qccqhoj6hihq
+#      region: us-ashburn-1
+#      auth_type: instance_principal
+
+#  - name: Get all the buckets in the namespace
+#    oci_object_storage_bucket_facts:

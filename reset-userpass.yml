@@ -1,0 +1,51 @@
+---
+- hosts: all
+  become: yes
+  become_method: sudo
+  become_user: root
+  gather_facts: no
+  any_errors_fatal: true
+
+  vars_prompt:
+   - name: "user_name"
+     prompt: "Enter user's account ID"
+     confirm: yes
+     private: no
+
+   - name: "user_password"    
+     prompt: "Enter a password for the user - not hash?"    
+     private: yes
+     unsafe: yes  # If you have to use special character such as % that could potentially cause templating errors    
+     encrypt: "sha512_crypt" #need to have python-passlib installed in local machine before we can use it    
+     confirm: yes    
+     salt_size: 7
+
+  tasks:
+
+   - name: Verify UserID exists first and exit play if it does not
+     shell: id -u "{{ user_name }}"
+     register: userid_status
+   
+   - name: Check Output
+     debug:
+       msg: "{{ userid_status }}"
+     
+   - name: Fail if userID does not exist
+     fail:
+        msg: The check_update did not a return either a code 100 or 0
+     when:  userid_status.rc != 0
+
+   - name: "add new user" 
+     user: 
+       name: "{{ user_name }}" 
+       password: "{{ user_password }}"
+#      update_password: on_create
+     register: usr_crt
+   - name: Show Output of User Creation Task
+     debug: 
+       msg: "{{ usr_crt }}"
+
+#   - name: Expire user's temp password
+#     shell: chage -d 0 "{{ user_name }}"
+#     tags:
+#       - expire

@@ -1,0 +1,62 @@
+---
+- hosts: localhost
+  connection: local
+  become: yes
+  become_method: sudo
+  become_user: root
+  gather_facts: yes
+  any_errors_fatal: no
+  vars_files:
+    - /home/opc/Ansible/dir_list
+  tasks:
+  - name: Check if directory exists
+    stat:
+#      path: /home/opc
+      path: "{{ item }}"
+    with_items:
+      "{{ dir_path }}"
+#      - /home/opc
+#      - /tmp/somedir1
+#      - /tmp/somefile
+    register: dircheck
+
+#  - name: "Debug"
+#    debug: 
+#      var: dircheck.results
+
+  - name: CHGRP
+    file:
+      path: "{{ item }}"
+      group: testuser
+#    with_items: "{{ dircheck.stat }}"
+    with_items: "{{ dircheck.results | selectattr('stat.isdir') | map(attribute='item') | list }}"
+#    loop: "{{ dircheck.results | selectattr('stat.isdir') | map(attribute='item') | list }}"
+#    with_items: "{{ dircheck.results }}"
+#    when: item.stat.isdir | bool
+
+#  - name: Set ACLs
+#    acl:
+#      path: "{{ item }}"
+#      entity: testuser
+#      etype: user
+#      permissions: rx
+#      state: present
+#    with_items: "{{ dircheck.results | selectattr('stat.isdir.true') | map(attribute='item') | list }}"
+#    with_items: "{{ dircheck.results }}"
+#    when: item.stat.isdir|default(false)|bool == true
+#    when: item.stat.exists | bool
+
+#  - name:
+#    debug:
+#      msg: ' The directory "{{ dir_check.results.stat.isdir }}" exists on "{{ ansible_host}}" '
+#      msg: ' The directory "{{ item }}" exist on "{{ ansible_host}}"  '
+#      msg: "{{ dir_check.stat|map(attribute='exists')|list }}"
+#    when: dir_check.stat.exists and dir_check.stat.isdir
+#    with_items: "{{ dir_check.results | selectattr('stat.isdir') | map(attribute='item') | list }}"
+#      msg: ' The directory {{ item }} exist on "{{ ansible_host }}"  '
+#    with_items: "{{ dir_check.results }}"
+#    when: item.stat.isdir
+#    when: item.stat.exists and item.stat.isdir
+#      msg: "{{ dir_check.stat|map(attribute='exists')|list }}"
+#      msg: "{{ dir_check.stat|map(attribute='exists') }}"
+

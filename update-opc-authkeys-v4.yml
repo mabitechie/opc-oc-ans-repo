@@ -1,0 +1,56 @@
+---
+- hosts: all
+  become: yes
+  become_method: sudo
+  become_user: root
+  gather_facts: yes
+
+  tasks:
+
+   - name: Verify the local Public Key Repo directory exists on the Ansible Controller Server
+     delegate_to: localhost
+     stat:
+       path: /root/public_keys/
+     register: stat_check
+     ignore_errors: yes
+
+   - name: Fail if directory does not exist
+     delegate_to: localhost
+     fail:
+       msg: "The public key repo directory does not exist or is named incorrectly"
+     when: not stat_check.stat.exists or not stat_check.stat.isdir
+  
+   - name: Remove previous local OPC authorized_keys
+     delegate_to: localhost
+     file:
+       path: /root/public_keys/opc-authorized-keys
+       state: absent
+
+#   - name: Bulk-download all public key files uploaded to a designated private bucket
+#     delegate_to: localhost
+#     shell: oci os object bulk-download -ns enter-namespace -bn private-bucket-name --download-dir /home/jenkins/public_keys --no-overwrite --auth instance_principal
+#   - name: Set ownership of downloaded files
+#     delegate_to: localhost
+#     file:
+#       path: /home/jenkins/public_keys
+#       owner: jenkins
+#       group: jenkins
+#       recurse: yes
+
+   - name: Concactenate all users public keys into one file
+     delegate_to: localhost
+     assemble:
+       src: /root/public_keys
+       dest: /root/public_keys/opc-authorized-keys
+#       owner: jenkins
+#       group: jenkins
+
+   - name: Append new public key to opc user's authorized_keys file - if any 
+     authorized_key:
+       user: opc
+       key: "{{ item }}"
+       manage_dir: yes
+       state: present
+       exclusive: no
+     with_file:
+      - /home/opc/Ansible/public_keys/opc-authorized-keys
