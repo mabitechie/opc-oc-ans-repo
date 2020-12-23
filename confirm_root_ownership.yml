@@ -1,0 +1,61 @@
+---
+- hosts: localhost
+  gather_facts: yes
+  become: yes
+  vars:
+    dir_paths:
+    - /dev/
+    - /home/opc
+  
+  tasks:
+  - name: Stat filesystems
+    stat:
+      path: "{{ item }}"
+    with_items: "{{ dir_paths }}"
+#      - /dev
+#      - /home/opc
+    register: fs_stat
+
+  - name: DEBUG-1 - Will only give the owner of the /home/opc
+    debug:
+      msg: "{{ fs_stat.results[1].stat.pw_name }}"
+#      var: "{{ item }}"
+#    with_items: fs_stat.results
+
+
+#Output is "opc  VARIABLE IS NOT DEFINED!" when I swapped msg with var
+  - name: DEBUG-2 - Using ITEM.STAT.PW_NAME with WITH_ITEMS 
+    debug:
+      msg: "The owner of the {{ item.stat.path }} directory is {{ item.stat.pw_name }}"
+    with_items: "{{ fs_stat.results }}"
+
+  - name: DEBUG-3 - Using ITEM.STAT.PW_NAME with LOOP
+    debug:
+      msg: "The path is {{ item.stat.path }}"
+    loop: "{{ fs_stat.results }}"
+
+#  - name: DEBUG-4
+#    debug:
+#      msg: "The KEY is {{ item.key }} and the VALUE is {{ item.value }}"
+#    with_dict: "{{ fs_stat.results.stat }}"
+#    loop: "{{ fs_stat.results.stat|dict2items }}"
+
+  - name: DEBUG-5 - Using MAP-ATTRIBUTE-LIST -  The cleanest most concise output
+    debug:
+      msg: "{{ fs_stat.results | map(attribute='stat.pw_name') | list }}"
+
+  - name: DEBUG-6 - using item.item
+    debug:
+      msg: "{{ item.item }}"
+    with_items: "{{ fs_stat.results }}"
+
+  - name: Confirming ownership of filesystems
+    loop: "{{ fs_stat.results | map(attribute='item') | zip(fs_stat.results | map(attribute='stat.pw_name')) | list }}"
+#    loop_control:
+#    label: "{{ item.item }}"
+
+    assert:
+      that: item.1 == 'root'
+    loop_control:
+      label: "{{ item.0 }}"
+
